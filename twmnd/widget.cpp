@@ -220,7 +220,7 @@ void Widget::updateBottomRightAnimation(QVariant value)
     }
     int offset_x = m_settings.get("gui/offset_x").toInt();
     int offset_y = m_settings.get("gui/offset_y").toInt();
-    setGeometry(p.x()-val+offset_x, p.y()-height()+offset_y, val, finalHeight);
+    setGeometry(p.x()-val+offset_x, p.y()-height()-offset_y, val, finalHeight);	// Fixed inverted offset_y.
     layout()->setSpacing(0);
     show();
 }
@@ -232,19 +232,21 @@ void Widget::updateBottomLeftAnimation(QVariant value)
     QPoint p(0, hend);
     if (m_settings.has("gui/screen") && !m_settings.get("gui/screen").toString().isEmpty()) {
         p = QDesktopWidget().screenGeometry(m_settings.get("gui/screen").toInt()).bottomLeft();
-        ++p.ry();
+        ++p.ry();	// What is the 'r' for? Does incrementing just raise the bar by 1px?
     } else if (m_settings.has("gui/absolute_position") && !m_settings.get("gui/absolute_position").toString().isEmpty()) {
         QPoint tmp = stringToPos(m_settings.get("gui/absolute_position").toString());
         if (!tmp.isNull())
             p = tmp;
     }
     //setGeometry(p.x(), p.y()-height(), val, finalHeight);
-    int width = computeWidth();
+    int width = computeWidth();	// This is the full length of notification content.
     if (width != -1)
         m_computedWidth = width;
     int offset_x = m_settings.get("gui/offset_x").toInt();
     int offset_y = m_settings.get("gui/offset_y").toInt();
-    setGeometry(value.toInt()-m_computedWidth, p.y()-height()+offset_x, m_computedWidth+offset_y, finalHeight);
+    //setGeometry(value.toInt()-m_computedWidth, p.y()-height()+offset_y, m_computedWidth+offset_x, finalHeight);	// Fixed inverted offsets.
+    setGeometry(value.toInt()-m_computedWidth, p.y()-height()-offset_y, m_computedWidth+offset_x, finalHeight);	// Fixed inverted offsets and offset_y.
+	/* Implementing offsets like that means the widget will be constantly exposed. Consider applying offsets to the calculated screen corner. p.rx()? */
     layout()->setSpacing(0);
     show();
 }
@@ -339,8 +341,8 @@ void Widget::startBounce()
     anim->setTargetObject(this);
     m_animation.addAnimation(anim);
 
-    anim->setEasingCurve(QEasingCurve::OutQuad);
-    anim->setDuration(m_settings.get("gui/bounce_duration").toInt() * 0.25f);
+    anim->setEasingCurve(QEasingCurve::OutQuad);	// Isn't this what the documentation says is supposed to be user defined?
+    anim->setDuration(m_settings.get("gui/bounce_duration").toInt() * 0.25f);	// Other 75% in Widget::unbounce().
     anim->setStartValue(0);
 
     QString position = m_messageQueue.front().data["pos"]->toString();
@@ -349,7 +351,7 @@ void Widget::startBounce()
         position == "center" || position == "c")
         anim->setEndValue(height());
     else
-        anim->setEndValue(40);
+        anim->setEndValue(40);	// Why 40? What is this?
 
     tmpBouncePos = pos();
 
@@ -368,7 +370,7 @@ void Widget::unbounce()
     connect(anim, SIGNAL(finished()), this, SLOT(doneBounce()));
     anim->setDirection(QAnimationGroup::Backward);
     anim->setEasingCurve(QEasingCurve::InBounce);
-    anim->setDuration(m_settings.get("gui/bounce_duration").toInt() * 0.75f);
+    anim->setDuration(m_settings.get("gui/bounce_duration").toInt() * 0.75f);	// Other 25% in Widget::startBounce().
     anim->start();
 }
 
@@ -423,9 +425,9 @@ void Widget::reverseTrigger()
     const bool bounce  = m_settings.get("gui/bounce").toBool();
     const int duration = m_messageQueue.front().data["duration"]->toInt();
 
-    const unsigned int minDuration = m_settings.get("gui/bounce_duration").toInt() + 10;
+    const unsigned int minDuration = m_settings.get("gui/bounce_duration").toInt() + 10;	// Why +10?
 
-    if (duration == -1) {
+    if (duration == -1) {	// Should this be "<= 0" ?
         m_visible.setInterval(minDuration);
     } else { // ensure its visible long enough to bounce
         if (bounce) {
@@ -457,7 +459,7 @@ void Widget::reverseStart()
         }
 
         unsigned int duration = m_settings.get("gui/out_animation_duration").toInt();
-        if (duration <= 30)
+        if (duration <= 30)	// Why?
             duration = 30;
 
         QPropertyAnimation* anim = qobject_cast<QPropertyAnimation*>(m_animation.animationAt(0));
@@ -481,7 +483,7 @@ void Widget::reverseStart()
     }
 }
 
-int Widget::computeWidth()
+int Widget::computeWidth()	// Width of message.
 {
     if (m_messageQueue.isEmpty())
         return -1;
@@ -555,7 +557,7 @@ void Widget::setupFont()
     QApplication::setFont(font);
 }
 
-void Widget::setupColors()
+void Widget::setupColors()	// Add support for alpha/transparency here?
 {
     Message& m = m_messageQueue.front();
     QString bg = m.data["bg"]->toString();
@@ -574,7 +576,7 @@ void Widget::connectForPosition(QString position)
     if (!anim)
         return;
     int duration = m_settings.get("gui/in_animation_duration").toInt();
-    if (duration <= 30)
+    if (duration <= 30)	// Why?
         duration = 30;
     if (anim->duration() != duration)
         anim->setDuration(duration);
@@ -607,7 +609,7 @@ void Widget::connectForPosition(QString position)
     else if (position == "center" || position == "c") {
         m_activePositionSlot = SLOT(updateCenterAnimation(QVariant));
     }
-    else if (position == "below_cursor" || position == "bcur") {
+    else if (position == "below_cursor" || position == "bcur") {	// Undocumented. Does this work?
         m_activePositionSlot = SLOT(updateBelowCursorAnimation(QVariant));
     }
     else {
@@ -652,7 +654,7 @@ void Widget::setupTitle()
         foreach (QString i, QStringList() << "\n" << "\r" << "<br/>" << "<br />")
             text.replace(i, " ");
 
-        m_contentView["title"]->setText(text + "| ");
+        m_contentView["title"]->setText(text + "| ");	// This should be user defined.
         m_contentView["title"]->setFont(boldFont);
         m_contentView["title"]->setMaximumWidth(9999);
     }
