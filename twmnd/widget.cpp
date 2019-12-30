@@ -132,7 +132,7 @@ void Widget::processMessageQueue()
         return;
     }
 
-    QFont boldFont = font();
+    QFont boldFont = font();	// Should be user defined?
     boldFont.setBold(true);
     Message& m = m_messageQueue.front();
     loadDefaults();
