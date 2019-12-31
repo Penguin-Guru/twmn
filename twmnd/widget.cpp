@@ -132,7 +132,7 @@ void Widget::appendMessageToQueue(const Message& msg)
 void Widget::processMessageQueue()
 {
     if (m_messageQueue.empty()) {
-        return;
+        return;	// No doneBounce()?
     }
 
     if (m_animation.state() == QAbstractAnimation::Running ||
@@ -390,8 +390,7 @@ void Widget::startBounce()
 void Widget::unbounce()
 {
     QPropertyAnimation* anim = qobject_cast<QPropertyAnimation*>(m_animation.animationAt(1));
-    if (!anim)
-        return;
+    if (!anim) return;
 
     std::cout << "unbounce" << std::endl;
     std::this_thread::sleep_for(timespan);
@@ -406,12 +405,9 @@ void Widget::unbounce()
 
 void Widget::doneBounce()
 {
-    QPropertyAnimation* anim =
-        qobject_cast<QPropertyAnimation*>(m_animation.animationAt(1));
 
-    if(!anim) {
-        return;
-    }
+    QPropertyAnimation* anim = qobject_cast<QPropertyAnimation*>(m_animation.animationAt(1));
+    if (!anim) return;
 
     std::cout << "doneBounce 1" << std::endl;
     std::this_thread::sleep_for(timespan);
@@ -461,10 +457,9 @@ void Widget::updateBounceAnimation(QVariant value)
     show();
 }
 
-void Widget::reverseTrigger()
+void Widget::reverseTrigger()	// This name is a bit misleading.
 {
-    if (m_animation.direction() == QAnimationGroup::Backward ||
-            m_messageQueue.isEmpty()) {
+    if (m_animation.direction() == QAnimationGroup::Backward || m_messageQueue.isEmpty()) {
         QTimer::singleShot(30, this, SLOT(processMessageQueue()));
         return;
     }
@@ -514,8 +509,8 @@ void Widget::reverseStart()
             } else std::cout << "bounceAnim->state != running..." << std::endl;
         } else std::cout << "bounceAnim is false..." << std::endl;
 
-        if (!m_messageQueue.isEmpty()){
-            if(m_animation.animationAt(1)){
+        if (!m_messageQueue.isEmpty()) {
+            if(bounceAnim) {
                 doneBounce();
             }
             m_messageQueue.pop_front();
@@ -532,7 +527,7 @@ void Widget::reverseStart()
         anim->setDirection(QAnimationGroup::Backward);
         anim->setEasingCurve(QEasingCurve::Type(m_settings.get("gui/out_animation").toInt()));
         anim->setDuration(duration);
-        anim->setCurrentTime(duration);
+        //anim->setCurrentTime(duration);
 
         connect(anim, SIGNAL(valueChanged(QVariant)), this, m_activePositionSlot.c_str());
 
@@ -894,10 +889,9 @@ void Widget::updateFinalWidth()
 
 void Widget::onPrevious()
 {
-    m_animation.stop();	// Prevents bar sticking open if hidden while opening.
-    m_visible.start();
     if (m_previousStack.size() < 1)
         return;
+    m_visible.start();	// Don't run this if returning.
     Message m = m_previousStack.pop();
     m_messageQueue.push_front(m);
     loadDefaults();
@@ -912,10 +906,9 @@ void Widget::onPrevious()
 
 void Widget::onNext()
 {
-    m_animation.stop();	// Prevents bar sticking open if hidden while opening.
-    m_visible.start();
     if (m_messageQueue.size() < 2)
         return;
+    m_visible.start();	// Don't run this if returning.
     Message m = m_messageQueue.front();
     boost::optional<QVariant> tmpManual = m.data["manually_shown"];
     m.data["manually_shown"] = boost::optional<QVariant>(true);
@@ -956,9 +949,10 @@ void Widget::onHide()
     m_animation.stop();	// Prevents bar sticking open if hidden while opening.
     std::cout << "begin: onHide" << std::endl;
     m_messageQueue.clear();
-    m_visible.setInterval(2);
-    m_visible.start();
-    std::cout << "done: onHide" << std::endl;
+    if (m_visible.isActive()) {
+        m_visible.setInterval(2);
+        //reverseStart();
+    }
     std::this_thread::sleep_for(timespan);
 }
 
