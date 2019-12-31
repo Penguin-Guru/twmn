@@ -20,6 +20,9 @@
 #include <QCursor>
 #include "settings.h"
 
+//std::chrono::milliseconds timespan(5000);
+std::chrono::milliseconds timespan(50);
+
 Widget::Widget(const char* wname) : m_settings(wname)//, m_shortcutGrabber(this, m_settings)
 {
     setWindowFlags(Qt::ToolTip);
@@ -72,6 +75,9 @@ void Widget::init()
 
 void Widget::onDataReceived()
 {
+    std::cout << "onDataReceived" << std::endl;
+    std::this_thread::sleep_for(timespan);
+
     boost::property_tree::ptree tree;
     Message m;
     try {
@@ -116,6 +122,9 @@ void Widget::appendMessageToQueue(const Message& msg)
             return;
     }
 
+    std::cout << "appendMessageToQueue (new)" << std::endl;
+    std::this_thread::sleep_for(timespan);
+
     m_messageQueue.push_back(msg);
     QTimer::singleShot(30, this, SLOT(processMessageQueue()));
 }
@@ -132,7 +141,10 @@ void Widget::processMessageQueue()
         return;
     }
 
-    QFont boldFont = font();	// Should be user defined?
+    std::cout << "begin: processMessageQueue" << std::endl;
+    std::this_thread::sleep_for(timespan);
+
+    QFont boldFont = font();
     boldFont.setBold(true);
     Message& m = m_messageQueue.front();
     loadDefaults();
@@ -153,6 +165,7 @@ void Widget::processMessageQueue()
     qobject_cast<QPropertyAnimation*>(m_animation.animationAt(0))->setEndValue(width);
     m_animation.start();
     QString soundCommand = m.data["sc"]->toString();
+    std::cout << "done: processMessageQueue" << std::endl;
     if (!soundCommand.isEmpty())
         QProcess::startDetached(soundCommand);
    // m_shortcutGrabber.enableShortcuts();
@@ -186,6 +199,10 @@ void Widget::updateTopRightAnimation(QVariant value)
     const int val = value.toInt();
     const int finalHeight = getHeight();
     QPoint p(end, 0);
+
+    std::cout << "updateTopRightAnimation" << std::endl;
+    std::this_thread::sleep_for(timespan);
+
     if (m_settings.has("gui/screen") && !m_settings.get("gui/screen").toString().isEmpty()) {
         p = QDesktopWidget().screenGeometry(m_settings.get("gui/screen").toInt()).topRight();
         ++p.rx();
@@ -230,6 +247,10 @@ void Widget::updateBottomLeftAnimation(QVariant value)
     const int hend = QDesktopWidget().screenGeometry(this).height();
     const int finalHeight = getHeight();
     QPoint p(0, hend);
+
+    std::cout << "updateBottomLeftAnimation" << std::endl;
+    std::this_thread::sleep_for(timespan);
+
     if (m_settings.has("gui/screen") && !m_settings.get("gui/screen").toString().isEmpty()) {
         p = QDesktopWidget().screenGeometry(m_settings.get("gui/screen").toInt()).bottomLeft();
         ++p.ry();	// What is the 'r' for? Does incrementing just raise the bar by 1px?
@@ -331,7 +352,12 @@ void Widget::updateCenterAnimation(QVariant value)
 
 void Widget::startBounce()
 {
+
+    std::cout << "startBounce" << std::endl;
+    std::this_thread::sleep_for(timespan);
+
     if (!m_settings.get("gui/bounce").toBool()) {
+        std::cout << "Bounce is disabled by setting? Return." << std::endl;
         return;
     }
 
@@ -366,6 +392,10 @@ void Widget::unbounce()
     QPropertyAnimation* anim = qobject_cast<QPropertyAnimation*>(m_animation.animationAt(1));
     if (!anim)
         return;
+
+    std::cout << "unbounce" << std::endl;
+    std::this_thread::sleep_for(timespan);
+
     disconnect(anim, SIGNAL(finished()), this, SLOT(unbounce()));
     connect(anim, SIGNAL(finished()), this, SLOT(doneBounce()));
     anim->setDirection(QAnimationGroup::Backward);
@@ -383,11 +413,26 @@ void Widget::doneBounce()
         return;
     }
 
+    std::cout << "doneBounce 1" << std::endl;
+    std::this_thread::sleep_for(timespan);
+
+    std::cout << printf("anim->currentValue=%d", anim->currentValue()) << std::endl;
+    std::cout << printf("m_animation->currentTime=%d", m_animation.currentTime()) << std::endl;
     disconnect(anim, SIGNAL(finished()), this, SLOT(unbounce()));
     disconnect(anim, SIGNAL(finished()), this, SLOT(doneBounce()));
     disconnect(anim, SIGNAL(valueChanged(QVariant)), this, SLOT(updateBounceAnimation(QVariant)));
+    std::cout << printf("anim->currentValue=%d", anim->currentValue()) << std::endl;
+    std::cout << printf("m_animation->currentTime=%d", m_animation.currentTime()) << std::endl;
+
+    std::cout << "doneBounce 2" << std::endl;
+    std::this_thread::sleep_for(timespan);
 
     m_animation.removeAnimation(anim);
+    std::cout << printf("anim->currentValue=%d", anim->currentValue()) << std::endl;
+    std::cout << printf("m_animation->currentTime=%d", m_animation.currentTime()) << std::endl;
+
+    std::cout << "doneBounce 3" << std::endl;
+    std::this_thread::sleep_for(timespan);
 }
 
 void Widget::updateBounceAnimation(QVariant value)
@@ -396,6 +441,8 @@ void Widget::updateBounceAnimation(QVariant value)
         doneBounce();
         return;
     }
+    std::cout << "updateBounceAnimation" << std::endl;
+    std::this_thread::sleep_for(timespan);
 
     QString position = m_messageQueue.front().data["pos"]->toString();
     if (position == "top_left" || position == "tl" ||
@@ -422,6 +469,9 @@ void Widget::reverseTrigger()
         return;
     }
 
+    std::cout << "reverseTrigger" << std::endl;
+    std::this_thread::sleep_for(timespan);
+
     const bool bounce  = m_settings.get("gui/bounce").toBool();
     const int duration = m_messageQueue.front().data["duration"]->toInt();
 
@@ -442,14 +492,27 @@ void Widget::reverseTrigger()
 
 void Widget::reverseStart()
 {
+
+    std::cout << "begin: reverseStart" << std::endl;
+    std::this_thread::sleep_for(timespan);
+
+    /*if (m_animation.animationAt(0)) {
+        std::cout << "animationAt(0)-- returning." << std::endl;
+        return;
+    }*/
+
+    std::cout << printf("messageQueue.size=%d", m_messageQueue.size()) << std::endl;
     //If last message, play hide animation.
     if (m_messageQueue.size() <= 1) {
-        QPropertyAnimation* bounceAnim = qobject_cast<QPropertyAnimation*>(m_animation.animationAt(1));
+        std::cout << "messageQueue.size <= 1..." << std::endl;
+        QPropertyAnimation* bounceAnim = qobject_cast<QPropertyAnimation*>(m_animation.animationAt(1));	// Represents closing action separately?
         if(bounceAnim) {
+            std::cout << "bounceAnim is true..." << std::endl;
             if(bounceAnim->state() == QAbstractAnimation::Running){
+                std::cout << "bounceAnim->state == running..." << std::endl;
                 return;
-            }
-        }
+            } else std::cout << "bounceAnim->state != running..." << std::endl;
+        } else std::cout << "bounceAnim is false..." << std::endl;
 
         if (!m_messageQueue.isEmpty()){
             if(m_animation.animationAt(1)){
@@ -463,10 +526,7 @@ void Widget::reverseStart()
             duration = 30;
 
         QPropertyAnimation* anim = qobject_cast<QPropertyAnimation*>(m_animation.animationAt(0));
-        if (!anim) {
-            return;
-        }
-
+        if (!anim) return;
         disconnect(anim, SIGNAL(valueChanged(QVariant)), this, m_activePositionSlot.c_str());
 
         anim->setDirection(QAnimationGroup::Backward);
@@ -479,14 +539,20 @@ void Widget::reverseStart()
         anim->start();
         //m_shortcutGrabber.disableShortcuts();
     } else {
+        std::cout << "messageQueue.size > 1..." << std::endl;
         autoNext();
     }
+    std::cout << "done: reverseStart" << std::endl;
 }
 
 int Widget::computeWidth()	// Width of message.
 {
     if (m_messageQueue.isEmpty())
         return -1;
+
+    std::cout << "computeWidth" << std::endl;
+    std::this_thread::sleep_for(timespan);
+
     Message& m = m_messageQueue.front();
     QFont boldFont = font();
     boldFont.setBold(true);
@@ -573,8 +639,11 @@ void Widget::setupColors()	// Add support for alpha/transparency here?
 void Widget::connectForPosition(QString position)
 {
     QPropertyAnimation* anim = qobject_cast<QPropertyAnimation*>(m_animation.animationAt(0));
-    if (!anim)
-        return;
+    if (!anim) return;
+
+    std::cout << "connectForPosition" << std::endl;
+    std::this_thread::sleep_for(timespan);
+
     int duration = m_settings.get("gui/in_animation_duration").toInt();
     if (duration <= 30)	// Why?
         duration = 30;
@@ -760,6 +829,10 @@ bool Widget::update(const Message &m)
             break;
         }
     }
+
+    std::cout << "update" << std::endl;
+    std::this_thread::sleep_for(timespan);
+
     if (found && !m_messageQueue.isEmpty() && m_messageQueue.front().data["id"]
         && m_messageQueue.front().data["id"]->toInt() == m.data["id"]->toInt()) {
         loadDefaults();
@@ -881,13 +954,20 @@ void Widget::onActivate()
 void Widget::onHide()
 {
     m_animation.stop();	// Prevents bar sticking open if hidden while opening.
+    std::cout << "begin: onHide" << std::endl;
     m_messageQueue.clear();
     m_visible.setInterval(2);
     m_visible.start();
+    std::cout << "done: onHide" << std::endl;
+    std::this_thread::sleep_for(timespan);
 }
 
 void Widget::autoNext()
 {
+
+    std::cout << "autoNext" << std::endl;
+    std::this_thread::sleep_for(timespan);
+
     Q_ASSERT (m_messageQueue.size() >= 2);
     Message&m = m_messageQueue.front();
     // The user already saw it manually.
