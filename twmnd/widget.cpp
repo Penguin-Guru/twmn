@@ -981,13 +981,6 @@ void Widget::onHide()
     unsigned const int duration = m_settings.get("gui/out_animation_duration").toInt() > 30 ? m_settings.get("gui/out_animation_duration").toInt() : 30;
     unsigned short i;
     std::cout << "begin: onHide" << std::endl;
-    m_messageQueue.clear();
-    if (m_visible.isActive()) {
-        m_visible.setInterval(2);
-        //reverseStart();
-    }
-    std::this_thread::sleep_for(timespan);
-=======
     //m_animation.stop();
     //std::this_thread::sleep_for(timespan);
     //if (m_visible.isActive()) {
@@ -1004,7 +997,6 @@ void Widget::onHide()
         //reverseStart();
     }
     //m_visible.setInterval(2);
->>>>>>> Stashed changes
 }
 
 void Widget::autoNext()
