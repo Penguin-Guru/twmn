@@ -35,6 +35,7 @@ private slots:
     void                    doneBounce();
     void                    updateBounceAnimation(QVariant value);
     void                    reverseTrigger();
+    void                    reverseTrigger(int);
     void                    reverseStart();
 
     void                    updateFinalWidth();

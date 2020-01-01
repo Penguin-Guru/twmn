@@ -135,8 +135,7 @@ void Widget::processMessageQueue()
         return;	// No doneBounce()?
     }
 
-    if (m_animation.state() == QAbstractAnimation::Running ||
-            m_visible.isActive()) {
+    if (m_animation.state() == QAbstractAnimation::Running || m_visible.isActive()) {
        //(m_animation.totalDuration() - m_animation.currentTime()) < 50) {
         return;
     }
@@ -464,13 +463,43 @@ void Widget::reverseTrigger()	// This name is a bit misleading.
         return;
     }
 
-    std::cout << "reverseTrigger" << std::endl;
-    std::this_thread::sleep_for(timespan);
-
     const bool bounce  = m_settings.get("gui/bounce").toBool();
     const int duration = m_messageQueue.front().data["duration"]->toInt();
 
-    const unsigned int minDuration = m_settings.get("gui/bounce_duration").toInt() + 10;	// Why +10?
+    const unsigned int minDuration = m_settings.get("gui/bounce_duration").toInt() + 10;
+
+    if (duration == -1) {
+        m_visible.setInterval(minDuration);
+    } else { // ensure its visible long enough to bounce
+        if (bounce) {
+            m_visible.setInterval((unsigned)duration < minDuration ? minDuration : duration);
+        } else {
+            m_visible.setInterval(duration);
+        }
+    }
+
+    m_visible.start();
+}
+
+void Widget::reverseTrigger(int duration)	// This name is a bit misleading.
+{
+    if (m_animation.direction() == QAnimationGroup::Backward) {
+        printf("messageQueue.size = %d", m_messageQueue.size());
+        printf("duration = %d", duration);
+        QTimer::singleShot(30, this, SLOT(processMessageQueue()));
+        return;
+    }
+
+    std::cout << "reverseTrigger (int)" << std::endl;
+    std::this_thread::sleep_for(timespan);
+
+    const bool bounce  = m_settings.get("gui/bounce").toBool();
+
+    const unsigned int minDuration = m_settings.get("gui/bounce_duration").toInt() + 10;
+
+    /*if (! m_messageQueue.isEmpty()) {
+        duration = m_messageQueue.front().data["duration"]->toInt();
+    } else duration = minDuration;*/
 
     if (duration == -1) {	// Should this be "<= 0" ?
         m_visible.setInterval(minDuration);
@@ -503,7 +532,7 @@ void Widget::reverseStart()
         QPropertyAnimation* bounceAnim = qobject_cast<QPropertyAnimation*>(m_animation.animationAt(1));	// Represents closing action separately?
         if(bounceAnim) {
             std::cout << "bounceAnim is true..." << std::endl;
-            if(bounceAnim->state() == QAbstractAnimation::Running){
+            if(bounceAnim->state() == QAbstractAnimation::Running) {
                 std::cout << "bounceAnim->state == running..." << std::endl;
                 return;
             } else std::cout << "bounceAnim->state != running..." << std::endl;
@@ -522,6 +551,7 @@ void Widget::reverseStart()
 
         QPropertyAnimation* anim = qobject_cast<QPropertyAnimation*>(m_animation.animationAt(0));
         if (!anim) return;
+
         disconnect(anim, SIGNAL(valueChanged(QVariant)), this, m_activePositionSlot.c_str());
 
         anim->setDirection(QAnimationGroup::Backward);
@@ -867,6 +897,8 @@ void Widget::updateFinalWidth()
         return;
     }
 
+    std::cout << "updateFinalWidth" << std::endl;
+
     QString position = m_messageQueue.front().data["pos"]->toString();
     int width = computeWidth();
 
@@ -946,7 +978,8 @@ void Widget::onActivate()
 
 void Widget::onHide()
 {
-    m_animation.stop();	// Prevents bar sticking open if hidden while opening.
+    unsigned const int duration = m_settings.get("gui/out_animation_duration").toInt() > 30 ? m_settings.get("gui/out_animation_duration").toInt() : 30;
+    unsigned short i;
     std::cout << "begin: onHide" << std::endl;
     m_messageQueue.clear();
     if (m_visible.isActive()) {
@@ -954,6 +987,24 @@ void Widget::onHide()
         //reverseStart();
     }
     std::this_thread::sleep_for(timespan);
+=======
+    //m_animation.stop();
+    //std::this_thread::sleep_for(timespan);
+    //if (m_visible.isActive()) {
+    if (! m_messageQueue.isEmpty()) {
+        if (m_messageQueue.size() > 1) {
+            //m_messageQueue.clear();
+            //for (QQueue<Message>::iterator it = m_messageQueue.at(1); it != m_messageQueue.end(); ++it) {
+            for (i=1; i < m_messageQueue.size(); i++) {	// Don't kill 0.
+                m_messageQueue.removeAt(i);
+            }
+        }
+        //reverseTrigger(m_messageQueue.front().data["duration"]->toInt());
+        reverseTrigger(1);
+        //reverseStart();
+    }
+    //m_visible.setInterval(2);
+>>>>>>> Stashed changes
 }
 
 void Widget::autoNext()
